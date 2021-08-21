@@ -1,0 +1,165 @@
+---
+title: "Extracion DEM de Gee con R"
+author: "Gorky Florez Castillo"
+date: "21/8/2021"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: [ "twitter", "facebook", "whatsapp", "instagram", "telegram", "linkedin", "pinterest" ]
+    source_code: "https://github.com/GorkyFlorez"
+    theme: sandstone
+---
+```{r setup, include=FALSE}
+#------------------------------------------------------------------------
+# Librerias 
+library(googledrive)
+library(rgee)
+library(mapedit)
+library(tibble)
+library(sf)
+library(cptcity)
+library(tidyverse)
+library(sp)
+library(leaflet.extras2)
+library(magick)
+library(rgeeExtra)
+library(raster)
+library(rgdal)
+# Iniciamos nuestra cuenta de Rgee
+ee_Initialize("gflorezc", drive = T)
+
+huepetuhe <-ee$FeatureCollection("users/gflorezc/huepetuhe") # LLamamos de la coleccion de GEE
+Peru      <-ee$FeatureCollection("users/gflorezc/Peru")      # LLamamos de la coleccion de GEE
+Cusco     <-ee$FeatureCollection("users/gflorezc/Cusco")      # LLamamos de la coleccion de GEE
+Cajamarca <-ee$FeatureCollection("users/gflorezc/Cajamarca")      # LLamamos de la coleccion de GEE
+dem       <- ee$Image("CGIAR/SRTM90_V4")
+viz       <- list(min=100, max= 4500, palette= cpt(pal = "gmt_GMT_dem1", n=10))
+slope     <- ee$Terrain$slope(dem)
+hillshape <- ee$Terrain$hillshade(dem)
+
+
+Huepe_DEM     =  hillshape$ clip(huepetuhe)
+Peru_DEM      =  hillshape$ clip(Peru)
+Cusco_DEM     =  hillshape$ clip(Cusco)
+Cajamarca_DEM =  hillshape$ clip(Cajamarca)
+```
+
+Peru
+===========================================================================
+
+Column
+---------------------------------------------------------------------------
+### Mapa de Sur America DEM 
+```{r}
+Map$setCenter(-61.21, -8.61 ,3) 
+Map$addLayer(eeObject = dem, visParams = viz, "DEM")+
+  Map$addLayer(eeObject = slope, visParams = list(min=0.2, max=0.75), "slope")+
+  Map$addLayer(eeObject = hillshape, visParams = NULL, "hillshape")
+```
+### Mapa del Peru 
+```{r}
+Map$setCenter(-74.71, -8.6 ,5) 
+Map$addLayer(eeObject = Peru_DEM, visParams = NULL, "DEM Peru")
+```
+
+Column {data-width=300}
+---------------------------------------------------------------------------
+### Que es un DEM 
+\
+Un **SIG** representa tanto entidades como superficies. Las entidades son objetos geográficos con formas bien definidas (como fronteras políticas). Las superficies son fenómenos geográficos con valores en todos los puntos de su extensión. La elevación es un ejemplo común, pero las superficies también pueden representar la temperatura, concentraciones químicas y otras muchas cosas.
+
+Las superficies se suelen modelar con datasets ráster. Un ráster es una matriz de celdas, también denominadas píxeles, organizadas en filas y columnas y que cubren alguna región del mundo (o incluso el mundo entero). Cada celda de una matriz representa una unidad de área cuadrada y contiene un valor numérico que es una medida o una estimación correspondiente a esa ubicación.
+
+\
+Cuando se observa un modelo digital de elevación **(DEM)** en un mapa, no se ve una matriz de celdas. En lugar de eso, se ve una capa simbolizada con una rampa de color, como en la imagen de la izquierda. Se pueden usar efectos especiales, como el sombreado, para simular el relieve, como en la imagen de la derecha.
+
+\
+Las herramientas de análisis se pueden ejecutar en los DEM para producir nuevas superficies como pendientes y orientaciones. Los **DEM** también se pueden usar para estudiar propiedades de la superficie, como la visibilidad y el flujo de agua. 
+
+### Mapa estatico con plot
+```{r}
+Huepetue_MDD      <- raster("expo/expo2.tif")
+plot(Huepetue_MDD , col=grey(0:100/100), main='Dis Huepetuhe', na.value = 'white')
+
+```
+
+
+Column
+---------------------------------------------------------------------------
+
+### Mapa de DEM extraidos Distrito de huepetuhe
+
+```{r}
+Map$setCenter(-70.77293, -12.75138,8) 
+Map$addLayer(eeObject = Huepe_DEM, visParams = NULL)
+```
+
+### Mapa de DEM extraidos Departamento del Cusco
+```{r}
+Map$setCenter(-72.19744, -13.4769,6) 
+Map$addLayer(eeObject =Cusco_DEM, visParams = NULL)
+```
+### Mapa de DEM extraidos Departamento de Cajamarca
+```{r}
+Map$setCenter(-78.80593, -6.17241,7) 
+Map$addLayer(eeObject =Cajamarca_DEM, visParams = NULL)
+```
+
+Information {data-orientation=rows data-icon="fa-info-circle"}
+===================================== 
+
+### Información de datos
+
+**Google Earth Engine** combina más de 40 años de imágenes de satélite del planeta, tanto históricas como actuales, junto con las herramientas y la potencia computacional necesarias para analizar y extraer información de este enorme almacén de datos. Como plataforma de escala planetaria para realizar análisis de datos medioambientales, es una herramienta de valor incalculable que los estudiantes pueden utilizar para profundizar en sus conocimientos sobre las implicaciones del cambio climático, entre otros temas. El proyecto Timelapse demuestra la potencia de Earth Engine, ya que crea una vista interactiva sin nubes que muestra los cambios que ha sufrido la cubierta terrestre a nivel mundial a lo largo de 32 años.
+**¿Lo sabías?**
+Un equipo de investigadores de la Universidad de Minnesota (Estados Unidos) utilizó Google Earth Engine para registrar los cambios producidos en todos los hábitats fundamentales de los tigres a lo largo de 14 años (y 13 países). Descubrieron que si se utiliza una gestión y una protección eficaz de los bosques, se podrá alcanzar el objetivo internacional de duplicar la población de tigres para el 2022.
+
+**Contar tu historia a través de imágenes**
+El proyecto Timelapse utilizó la tecnología "Time Machine" (máquina del tiempo) del laboratorio CREATE de la Universidad Carnegie Mellon (UCM) de Estados Unidos junto con la capacidad de procesamiento de Earth Engine para crear vídeos con miles de millones de píxeles de resolución a lo largo del espacio y el tiempo que se pueden desplazar y acercar. La herramienta Timelapse Tour Editor de la UCM crea viajes en Timelapse que consisten en fotogramas clave de fechas y lugares del planeta y en las transiciones entre ellos.
+
+### NOTA BIOGRÁFICA
+
+**Gorky florez Castillo**, nacido en el Departamento del Cusco, Provincia de la Convención, Distrito de Santa Ana el 07 de agosto de 1997. Curso sus estudios primarios en la Institución Educativa Juan de la Cruz Monte Salas y los secundarios en el “Glorioso colegio Emblemático Manco II”, de la ciudad de Quillabamba. 
+
+Bachiller con mención en la Carrera Profesional de Ingeniería Forestal y Medio Ambiente de la Universidad Nacional Amazónica de Madre de Dios el año, desde el 23 de diciembre del 2020. Participación activa en Proyectos de investigación u otras actividades que involucren de nuestros recursos Naturales, a la conservación, a la educación y conciencia ambiental, de esta forma contribuir al desarrollo del departamento de Madre de Dios y mi país.
+
+Realizo un artículo de investigación de caracterización morfológica y estructura poblacional de Euterpe precatoria (Arecaceae) en dos tipos de bosque (bosque de tierra firme y bosque inundable publicado en la revista ecuatoriana Bosques Latitud Cero (Florez-castillo, Nieto-ramos y Garate-quispe 2020).
+
+
+
+### Otra información
+Que es  Google Earth Engine
+Google Earth Engine es una plataforma basada en la nube que permite a los usuarios tener un fácil acceso a un archivo de datos de teledetección a escala de petabytes y ejecutar análisis geoespaciales en la infraestructura de Google. Actualmente, Google ofrece soporte solo para Python y JavaScript. Rgee llenará el vacío comenzando a brindar apoyo a R. A continuación, encontrará la comparación entre la sintaxis de rgee y las dos bibliotecas cliente compatibles con Google.
+
+El repositorio de GitHub y el código subyacente de este panel se pueden encontrar aquí. [here]()
+
+Este dashbaord se desarrolló utilizando [R Studio] (https://www.rstudio.com/) y los siguientes paquetes:
+
+* [RMarkdown](https://rmarkdown.rstudio.com/) para análisis reproducibles en documentos de calidad
+*  [flexdashbaord](https://rmarkdown.rstudio.com/flexdashboard/) para formatear en RMarkdown
+* [DT](https://rstudio.github.io/DT/) para tablas interactivas
+* [crosstalk](https://rstudio.github.io/crosstalk/) para widgets html interactivos en RMarkdown
+
+
+Se presenta otros manuales y ejemplos del uso de Google Earth Engine en RStudio
+
+* [Aviso de friaje - (SENAMHI)](https://gorkyflorez.github.io/Aviso_Friaje_MDD/) 
+*  [NDVI de Yungay](https://gorkyflorez.github.io/Google_Earth_Engine_RStudio_/) 
+* [Calcule la tendencia de las luces nocturnas ](https://gorkyflorez.github.io/luces_nocturnas_GEE/) 
+* [Perdida de la cobertura boscosa en la cuenca chonta](https://gorkyflorez.github.io/Analisis_cambio_cobertura_boscosa_microcuenca_chonta/) 
+
+* [INCREMENTO DE TEMPERATURA DIURNA EN LA SELVA](https://gorkyflorez.github.io/Aviso_SENAMHI_155/) 
+*  [NDVI de Yungay](https://gorkyflorez.github.io/Google_Earth_Engine_RStudio_/) 
+* [Índice de agua de diferencia normalizada Sentinel-2 (NDWI)](https://gorkyflorez.github.io/Google_Earth_Engine_NDWI_Dhaka/) 
+* [NDVI en Git de Madre de Dios 2013-2014](https://gorkyflorez.github.io/GEE_NDVI_MDD_Arequi/) 
+* [Modelo digital de elevación](https://gorkyflorez.github.io/GEE_DEM/) 
+* [Gee no supervizado ](https://gorkyflorez.github.io/GEE_Clasificacion_Puerto_Maldonado/) 
+* [Catastro minero MDD ](https://gorkyflorez.github.io/Catastro_minero_MDD/) 
+
+* [Data ](https://rpubs.com/rubenfbc )
+* [Data visualization](https://rpubs.com/rubenfbc/sunburst_treemaps) 
+* [Data visualization 2](https://rpubs.com/rubenfbc/treemaps_2) 
+* [Data visualization 3](https://rpubs.com/rubenfbc/bar_charts) 
+* [Data visualization 4](https://rpubs.com/rubenfbc/nuts_dashboard)
+* [Temas](https://bootswatch.com/flatly/)
+
